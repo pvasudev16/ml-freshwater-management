@@ -82,7 +82,12 @@ class KalmanFilter:
         self.Q_t = 0 # Covariance of the model noise
 
         # KalmanNet features
+        # F1: "innovation" difference between the lake water level data and y_t_prior
         self.innovation = 0
+
+        # F2: "observation_difference": difference between y_t and y_{t-1}
+        self.y_t_minus_one = 0
+        self.observation_difference = 0
         
     def initialize(self, lake_data_0):
         # lake_data_0 is the lake data for the zeroth time step.
@@ -123,13 +128,20 @@ class KalmanFilter:
         self.S_t_prior = self.R_t + np.matmul(self.H_t, np.transpose(self.H_t)) * self.sigma_t_prior
         
         # Initialize the observations
+        # Set the observations at time t to the the "t-1" ones and then update
+        self.y_t_minus_one = self.y_t 
         self.y_t = np.array(lake_data["lake_water_level"]).reshape(self.m_t, 1)
         
         # Initialize the estimates based on the priors
         self.y_t_prior = self.H_t  * self.x_t_prior
 
-        # Calculate the innovation
-        self.innovation = self.get_innovation(self.y_t)
+        # Calculate F1: "innovation"
+        self.innovation = self.get_innovation()
+
+        # Calculate F2: "observation difference"
+        self.observation_difference = self.get_observation_difference()
+
+
     
     def calculate_kalman_gain(
         self,
@@ -169,8 +181,30 @@ class KalmanFilter:
         self.sigma_t_prior = self.sigma_t + self.Q_t
     
     # Add functions to calculate features for KalmanNet
-    def get_innovation(self, y_t):
-        return y_t - self.y_t_prior
+    # F1: "innovation"
+    def get_innovation(self):
+        return self.y_t - self.y_t_prior
+    
+    def get_observation_difference(self):
+        length_of_y_t = len(self.y_t)
+        length_of_y_t_minus_one = len(self.y_t_prior)
+
+        if length_of_y_t == length_of_y_t_minus_one:
+            return self.y_t - self.y_t_prior
+        elif length_of_y_t > length_of_y_t_minus_one:
+            return self.yt - np.pad(
+                array=self.y_t_minus_one,
+                pad_width=(0, length_of_y_t - length_of_y_t_minus_one),
+                mode="constant",
+                constant_values=0.
+            )
+        else:
+            return np.pad(
+                array=self.y_t,
+                pad_width=(0, length_of_y_t_minus_one - length_of_y_t),
+                mode="constant",
+                constant_values=0.
+            ) - self.y_t_minus_one
 
 
 times = pd.unique(lake_winnipeg["date"])
@@ -178,6 +212,7 @@ lake_water_levels = np.zeros(np.array(times).shape)
 oHai = KalmanFilter()
 number_of_time_points = len(times)
 lake_winnipeg["innovation"] = 0.
+lake_winnipeg["observation_difference"] = 0.
 
 for i, time in enumerate(times):
     # Initialize
@@ -187,13 +222,15 @@ for i, time in enumerate(times):
                 lake_winnipeg["date"] == time
             ]
         )
-        innovation = oHai.innovation
-        
+
         # Write F1 innovation to data frame
         lake_winnipeg.loc[
             lake_winnipeg["date"]==time,
             "innovation"
-        ] = innovation.reshape((len(innovation), 1))
+        ] = oHai.innovation.reshape((len(oHai.innovation), 1))
+
+        # Write F2 observation difference to data frame
+        la
     
     else:
         oHai.input_new_data(
@@ -202,13 +239,11 @@ for i, time in enumerate(times):
             ]
         )
 
-        innovation = oHai.innovation
-        
         # Write F1 innovation to data frame
         lake_winnipeg.loc[
             lake_winnipeg["date"]==time,
             "innovation"
-        ] = innovation.reshape((len(innovation), 1))
+        ] = oHai.innovation.reshape((len(oHai.innovation), 1))
      
      # Update
     oHai.update()
