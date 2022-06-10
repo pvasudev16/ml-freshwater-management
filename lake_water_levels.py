@@ -80,6 +80,9 @@ class KalmanFilter:
         self.K_t = 0 # Kalman gain
         self.R_t = 0 # Covariance of noise in the observations at time t
         self.Q_t = 0 # Covariance of the model noise
+
+        # KalmanNet features
+        self.innovation = 0
         
     def initialize(self, lake_data_0):
         # lake_data_0 is the lake data for the zeroth time step.
@@ -124,6 +127,9 @@ class KalmanFilter:
         
         # Initialize the estimates based on the priors
         self.y_t_prior = self.H_t  * self.x_t_prior
+
+        # Calculate the innovation
+        self.innovation = self.get_innovation(self.y_t)
     
     def calculate_kalman_gain(
         self,
@@ -161,13 +167,17 @@ class KalmanFilter:
     def predict(self): # Is a better name predict_next_prior?
         self.x_t_prior = self.x_t
         self.sigma_t_prior = self.sigma_t + self.Q_t
-
+    
+    # Add functions to calculate features for KalmanNet
+    def get_innovation(self, y_t):
+        return y_t - self.y_t_prior
 
 
 times = pd.unique(lake_winnipeg["date"])
 lake_water_levels = np.zeros(np.array(times).shape)
 oHai = KalmanFilter()
 number_of_time_points = len(times)
+lake_winnipeg["innovation"] = 0.
 
 for i, time in enumerate(times):
     # Initialize
@@ -177,12 +187,29 @@ for i, time in enumerate(times):
                 lake_winnipeg["date"] == time
             ]
         )
+        innovation = oHai.innovation
+        
+        # Write F1 innovation to data frame
+        lake_winnipeg.loc[
+            lake_winnipeg["date"]==time,
+            "innovation"
+        ] = innovation.reshape((len(innovation), 1))
+    
     else:
         oHai.input_new_data(
             lake_winnipeg.loc[
                 lake_winnipeg["date"] == time
             ]
         )
+
+        innovation = oHai.innovation
+        
+        # Write F1 innovation to data frame
+        lake_winnipeg.loc[
+            lake_winnipeg["date"]==time,
+            "innovation"
+        ] = innovation.reshape((len(innovation), 1))
+     
      # Update
     oHai.update()
     
@@ -195,6 +222,7 @@ for i, time in enumerate(times):
         percentage_complete = i/(number_of_time_points - 1) * 100.
         print("Processing %d, %0.02f%% complete"%(time, percentage_complete))
 
+lake_winnipeg.head(50)
 
 # Form a baseline comparison
 def rms(values):
