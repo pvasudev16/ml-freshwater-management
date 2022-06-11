@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import sklearn as sk
 import matplotlib
-import cartopy.crs as ccrs # Projections
-import cartopy.feature as cfeature
-import cartopy
+# import cartopy.crs as ccrs # Projections
+# import cartopy.feature as cfeature
+# import cartopy
 import datetime
 
 
@@ -128,8 +128,11 @@ class KalmanFilter:
         self.S_t_prior = self.R_t + np.matmul(self.H_t, np.transpose(self.H_t)) * self.sigma_t_prior
         
         # Initialize the observations
-        # Set the observations at time t to the the "t-1" ones and then update
-        self.y_t_minus_one = self.y_t 
+        # Set the observations at time t to the the "t-1" ones and then add the newest data to y_t
+        if isinstance(self.y_t_minus_one, int) or isinstance(self.y_t_minus_one, float):
+            self.y_t_minus_one = np.array([self.y_t])
+        else:
+            self.y_t_minus_one = self.y_t
         self.y_t = np.array(lake_data["lake_water_level"]).reshape(self.m_t, 1)
         
         # Initialize the estimates based on the priors
@@ -187,24 +190,19 @@ class KalmanFilter:
     
     def get_observation_difference(self):
         length_of_y_t = len(self.y_t)
-        length_of_y_t_minus_one = len(self.y_t_prior)
+        length_of_y_t_minus_one = len(self.y_t_minus_one)
 
         if length_of_y_t == length_of_y_t_minus_one:
-            return self.y_t - self.y_t_prior
+            return self.y_t - self.y_t_minus_one
         elif length_of_y_t > length_of_y_t_minus_one:
-            return self.yt - np.pad(
-                array=self.y_t_minus_one,
-                pad_width=(0, length_of_y_t - length_of_y_t_minus_one),
-                mode="constant",
-                constant_values=0.
+            padding_array = np.random.normal(
+                loc=np.mean(self.y_t_minus_one),
+                scale=np.std(self.y_t_minus_one),
+                size=length_of_y_t - length_of_y_t_minus_one
             )
+            return self.y_t - np.vstack((self.y_t_minus_one, padding_array.reshape((padding_array.shape[0], 1))))
         else:
-            return np.pad(
-                array=self.y_t,
-                pad_width=(0, length_of_y_t_minus_one - length_of_y_t),
-                mode="constant",
-                constant_values=0.
-            ) - self.y_t_minus_one
+            return self.y_t - self.y_t_minus_one[0:length_of_y_t]
 
 
 times = pd.unique(lake_winnipeg["date"])
@@ -228,9 +226,6 @@ for i, time in enumerate(times):
             lake_winnipeg["date"]==time,
             "innovation"
         ] = oHai.innovation.reshape((len(oHai.innovation), 1))
-
-        # Write F2 observation difference to data frame
-        la
     
     else:
         oHai.input_new_data(
@@ -244,6 +239,12 @@ for i, time in enumerate(times):
             lake_winnipeg["date"]==time,
             "innovation"
         ] = oHai.innovation.reshape((len(oHai.innovation), 1))
+
+        # Write F2 observation difference to data frame
+        lake_winnipeg.loc[
+            lake_winnipeg["date"]==time,
+            "observation_difference"
+        ] = oHai.observation_difference.reshape((len(oHai.observation_difference), 1))
      
      # Update
     oHai.update()
@@ -257,7 +258,7 @@ for i, time in enumerate(times):
         percentage_complete = i/(number_of_time_points - 1) * 100.
         print("Processing %d, %0.02f%% complete"%(time, percentage_complete))
 
-lake_winnipeg.head(50)
+lake_winnipeg.to_csv("./processed_lake_water_data.csv")
 
 # Form a baseline comparison
 def rms(values):
