@@ -88,6 +88,10 @@ class KalmanFilter:
         # F2: "observation_difference": difference between y_t and y_{t-1}
         self.y_t_minus_one = 0
         self.observation_difference = 0
+
+        # F3: "forward evolution difference": difference between x_t and x_{t-1}
+        self.x_t_minus_one = 0
+        self.forward_evolution_difference = 0
         
     def initialize(self, lake_data_0):
         # lake_data_0 is the lake data for the zeroth time step.
@@ -164,11 +168,16 @@ class KalmanFilter:
             self.H_t
         )
         
-        # Update state variable
+        # Update state variable.
+        # Store the previous iteration as t-1
+        self.x_t_minus_one = self.x_t
         self.x_t = self.x_t_prior + np.matmul(
             self.K_t,
             self.y_t - self.y_t_prior
         ).item()
+
+        # Calculate F3 forward evolution difference
+        self.forward_evolution_difference = self.get_forward_evolution_difference()
 
         # Update sigma_t
         self.sigma_t = self.sigma_t_prior - np.matmul(
@@ -203,6 +212,9 @@ class KalmanFilter:
             return self.y_t - np.vstack((self.y_t_minus_one, padding_array.reshape((padding_array.shape[0], 1))))
         else:
             return self.y_t - self.y_t_minus_one[0:length_of_y_t]
+    
+    def get_forward_evolution_difference(self):
+        return self.x_t - self.x_t_minus_one
 
 
 times = pd.unique(lake_winnipeg["date"])
@@ -211,6 +223,7 @@ oHai = KalmanFilter()
 number_of_time_points = len(times)
 lake_winnipeg["innovation"] = 0.
 lake_winnipeg["observation_difference"] = 0.
+lake_winnipeg["forward_evolution_difference"] = 0.
 
 for i, time in enumerate(times):
     # Initialize
@@ -226,6 +239,8 @@ for i, time in enumerate(times):
             lake_winnipeg["date"]==time,
             "innovation"
         ] = oHai.innovation.reshape((len(oHai.innovation), 1))
+
+        # Don't calculate F2 on the first iteration
     
     else:
         oHai.input_new_data(
@@ -245,6 +260,12 @@ for i, time in enumerate(times):
             lake_winnipeg["date"]==time,
             "observation_difference"
         ] = oHai.observation_difference.reshape((len(oHai.observation_difference), 1))
+
+        # Write F3 forward evolution difference to data frame
+        lake_winnipeg.loc[
+            lake_winnipeg["date"]==time,
+            "forward_evolution_difference"
+        ] = oHai.forward_evolution_difference
      
      # Update
     oHai.update()
