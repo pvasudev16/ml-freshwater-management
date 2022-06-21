@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 # Read pre-processed output
 max_track_length = 920
-output = pd.read_csv("./data/imputed_sentinel_a_b_data.csv", parse_dates=["date"])
+output = pd.read_csv("./processed/imputed_sentinel_a_b_data.csv", parse_dates=["date"])
 
 df_train = output.iloc[0:200*920]
 df_test = output.iloc[201*920::]
