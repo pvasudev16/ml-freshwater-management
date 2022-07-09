@@ -13,6 +13,7 @@ import matplotlib.font_manager as fm
 #    - Read in Sentinel A and B data.
 #      Sentinel B data is used only for our neural network.
 #    - Figure 1: Sentinel A ground tracks over Lake Winnipeg
+#    - Figure 2: Outlier rejection (reject points +/- 2*sigma from the mean)
 
 # Constants for plotting
 FIG_WIDTH_INCHES = 6.5
@@ -112,7 +113,128 @@ fig.savefig(
     transparent=False
 )
 
-plt.show()
+####
+#### Figure 2: Outlier Rejection
+####
+lake_water_mean = lake_winnipeg["lake_water_level"].mean()
+lake_water_std = lake_winnipeg["lake_water_level"].std()
+
+fig = plt.figure(figsize=(6, 6))
+ax = fig.add_subplot(111)
+
+# Plot histogram of the lake water levels
+ax.hist(
+    x=lake_winnipeg["lake_water_level"],
+    bins=np.linspace(
+        lake_water_mean - 5 * lake_water_std,
+        lake_water_mean + 5 * lake_water_std,
+        500
+    )
+)
+ax.set_xlim(
+    [
+        lake_water_mean - 7 * lake_water_std,
+        lake_water_mean + 7 * lake_water_std,
+    ]
+)
+
+# Set shaded red areas, indicating what to exlude
+ax.axvspan(
+    xmin=ax.get_xlim()[0],
+    xmax=lake_water_mean - 2 * lake_water_std,
+    facecolor="#F02D3A",
+    alpha=0.5
+)
+ax.axvspan(
+    xmin=lake_water_mean + 2 * lake_water_std,
+    xmax=ax.get_xlim()[1],
+    facecolor="#F02D3A",
+    alpha=0.5
+)
+
+# Add vertical lines at each standard deviation
+vline_water_levels = [lake_water_mean + i * lake_water_std for i in range(-2,3)]
+ax.set_ylim([0, 2000.])
+ax.vlines(
+    x=vline_water_levels,
+    ymin=0., 
+    ymax=2000., # hard code in 2000. here; setting ymax=ax.get_ylim()[1] isn't working properly
+    color='k',
+    linestyle='--',
+    alpha=0.5
+)
+
+# Add thousands separator to y-axis
+ax.get_yaxis().set_major_formatter(
+    matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ','))
+)
+
+ax.set_xlabel(
+    "Water level (m)",
+    color=TEXT_COLOUR,
+    fontsize=LABEL_SIZE,
+    labelpad=20
+)
+ax.set_ylabel(
+    "Number of data points",
+    fontsize=LABEL_SIZE,
+    labelpad=20,
+    color=TEXT_COLOUR
+)
+
+# Add upper x-axis showing mu and +/- N standard deviations
+ax1 = ax.twiny()
+ax1.set_xlim(
+    ax.get_xlim()
+)
+ax1.set_xticks(
+    [lake_water_mean + i * lake_water_std for i in range(-2, 3)]
+)
+ax1.set_xticklabels(
+    [
+        r'-2$\sigma$',
+        r'-1$\sigma$',
+        r'$\mu$',
+        r'1$\sigma$',
+        r'2$\sigma$',
+    ],
+    fontsize=TICK_LABEL_SIZE,
+    color=TEXT_COLOUR
+)
+
+# Set all x/y-ticks to have the right size and colour
+for x in ax.get_xticklabels():
+    x.set_fontsize(TICK_LABEL_SIZE)
+    x.set_color(TEXT_COLOUR)
+for y in ax.get_yticklabels():
+    y.set_fontsize(TICK_LABEL_SIZE)
+    y.set_color(TEXT_COLOUR)
+
+# Add label saying to ignore the shaded red-ares    
+ax.text(210, 1500, 'Ignore water\n' + r'levels of $\mu  \pm2\sigma$' + '\n(shaded)', color=TEXT_COLOUR, fontsize=13)
+
+# Set the colour of the axes
+ax1.spines["top"].set_color(TEXT_COLOUR)
+ax1.spines["bottom"].set_color(TEXT_COLOUR)
+ax1.spines["left"].set_color(TEXT_COLOUR)
+ax1.spines["right"].set_color(TEXT_COLOUR)
+ax.tick_params(axis='x', colors=TEXT_COLOUR)
+ax.tick_params(axis='y', colors=TEXT_COLOUR)
+ax1.tick_params(axis='x', colors=TEXT_COLOUR)
+
+plt.title(
+    "Distribution of lake water levels\nin Lake Winnipeg from Sentinel A",
+    fontsize=TITLE_SIZE,
+    pad=20,
+    color=TEXT_COLOUR
+)
+plt.tight_layout()
+fig.savefig(
+    './out/outlier_rejection.png',
+    dpi=400, 
+    bbox_inches='tight', 
+    transparent=True
+)
 
 
 
