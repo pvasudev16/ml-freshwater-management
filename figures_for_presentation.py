@@ -14,6 +14,7 @@ import matplotlib.font_manager as fm
 #      Sentinel B data is used only for our neural network.
 #    - Figure 1: Sentinel A ground tracks over Lake Winnipeg
 #    - Figure 2: Outlier rejection (reject points +/- 2*sigma from the mean)
+#    - Figure 3: Mean lake water levels on each day
 
 # Constants for plotting
 FIG_WIDTH_INCHES = 6.5
@@ -110,7 +111,7 @@ fig.savefig(
     './out/sentinel_a_ground_track.png',
     dpi=400, 
     bbox_inches='tight', 
-    transparent=False
+    transparent=True
 )
 
 ####
@@ -231,6 +232,76 @@ plt.title(
 plt.tight_layout()
 fig.savefig(
     './out/outlier_rejection.png',
+    dpi=400, 
+    bbox_inches='tight', 
+    transparent=True
+)
+
+####
+#### Figure 3: Mean lake water levels on each day
+####
+baseline_results = lake_winnipeg[
+    [
+        "date",
+        "lake_water_level"
+    ]
+].groupby("date").agg(
+    {
+        "lake_water_level" : "median"
+    }
+).reset_index()
+baseline_results.loc[:, "date_as_datetime"] = pd.to_datetime(baseline_results.loc[:, "date"], format="%Y%m%d")
+
+fig = plt.figure(figsize=(6, 6))
+ax = fig.add_subplot(111)
+ax.plot(
+    baseline_results["date_as_datetime"],
+    baseline_results["lake_water_level"],
+    linewidth=1.0,
+    label="Median of each track",
+    color="#F55536"
+)
+ax.set_xlabel(
+    'Date',
+    labelpad=20,
+    color=TEXT_COLOUR,
+    fontsize=LABEL_SIZE
+)
+ax.set_ylabel(
+    'Lake Winnipeg water levels (m)',
+    labelpad=20,
+    color=TEXT_COLOUR,
+    fontsize=LABEL_SIZE
+)
+plt.title(
+    "Median of lake water levels on each day\nin Lake Winnipeg (Sentinel A)",
+    fontsize=TITLE_SIZE,
+    color=TEXT_COLOUR,
+    pad=20
+)
+locator = matplotlib.dates.MonthLocator((1, 7))
+fmt = matplotlib.dates.DateFormatter('%b-%Y')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(fmt)
+for x in ax.get_xticklabels():
+    x.set_rotation(45)
+    x.set_fontsize(TICK_LABEL_SIZE)
+    x.set_color(TEXT_COLOUR)
+
+for y in ax.get_yticklabels():
+    y.set_fontsize(TICK_LABEL_SIZE)
+    y.set_color(TEXT_COLOUR)
+
+# Set the colour of the axes
+ax.spines["top"].set_color(TEXT_COLOUR)
+ax.spines["bottom"].set_color(TEXT_COLOUR)
+ax.spines["left"].set_color(TEXT_COLOUR)
+ax.spines["right"].set_color(TEXT_COLOUR)
+ax.tick_params(axis='x', colors=TEXT_COLOUR)
+ax.tick_params(axis='y', colors=TEXT_COLOUR)
+plt.tight_layout()
+fig.savefig(
+    './out/median.png',
     dpi=400, 
     bbox_inches='tight', 
     transparent=True
