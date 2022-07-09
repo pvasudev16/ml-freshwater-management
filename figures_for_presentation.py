@@ -307,6 +307,79 @@ fig.savefig(
     transparent=True
 )
 
+#####
+##### Figure 4: Kalman filtered lake water levels; overlaid on median (figure 3) levels
+#####
+# Just read in the results; don't repeat processing here.
+kalman_filtered = pd.read_csv("./processed/lake_winnipeg_sentinel_a_kalman_filtered.csv")
+# Plot just the median
+fig = plt.figure(figsize=(6, 6))
+ax = fig.add_subplot(111)
+ax.plot(
+    baseline_results["date_as_datetime"],
+    baseline_results["lake_water_level"],
+    linewidth=1.0,
+    label="Median of each track",
+    alpha=0.5,
+    color = "#F55536"
+)
+ax.plot(
+    pd.to_datetime(kalman_filtered["date"], format="%Y%m%d"),
+    kalman_filtered["kalman_filtered_lake_water_levels"],
+    zorder=10,
+    label="Kalman Filtered",
+    alpha=0.85,
+    color="k"
+)
+ax.set_xlabel(
+    'Date',
+    labelpad=20,
+    color=TEXT_COLOUR,
+    fontsize=LABEL_SIZE,
+)
+ax.set_ylabel(
+    'Lake Winnipeg water levels (m)',
+    labelpad=20,
+    color=TEXT_COLOUR,
+    fontsize=LABEL_SIZE
+)
+plt.title(
+    "Median and Kalman filtered lake water levels on each day\nin Lake Winnipeg (Sentinel A)",
+    fontsize=TITLE_SIZE,
+    color=TEXT_COLOUR,
+    pad=20
+)
+locator = matplotlib.dates.MonthLocator((1, 7))
+fmt = matplotlib.dates.DateFormatter('%b-%Y')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(fmt)
+for x in ax.get_xticklabels():
+    x.set_rotation(45)
+    x.set_fontsize(TICK_LABEL_SIZE)
+    x.set_color(TEXT_COLOUR)
+
+for y in ax.get_yticklabels():
+    y.set_fontsize(TICK_LABEL_SIZE)
+    y.set_color(TEXT_COLOUR)
+
+ax.legend(
+)
+# Set the colour of the axes
+ax.spines["top"].set_color(TEXT_COLOUR)
+ax.spines["bottom"].set_color(TEXT_COLOUR)
+ax.spines["left"].set_color(TEXT_COLOUR)
+ax.spines["right"].set_color(TEXT_COLOUR)
+ax.tick_params(axis='x', colors=TEXT_COLOUR)
+ax.tick_params(axis='y', colors=TEXT_COLOUR)
+plt.tight_layout()
+fig.savefig(
+    './out/kalman.png',
+    dpi=400, 
+    bbox_inches='tight', 
+    transparent=True
+)
+
+
 
 
 
