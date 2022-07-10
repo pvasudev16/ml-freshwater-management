@@ -10,11 +10,13 @@ import datetime
 import matplotlib.font_manager as fm
 
 # This file generates the plots we used in our presentation. It is outlined as follows:
-#    - Read in Sentinel A and B data.
-#      Sentinel B data is used only for our neural network.
+#    - Read in the Sentinel A data for Lake Winnipeg
 #    - Figure 1: Sentinel A ground tracks over Lake Winnipeg
 #    - Figure 2: Outlier rejection (reject points +/- 2*sigma from the mean)
 #    - Figure 3: Mean lake water levels on each day
+#    - Figure 4: Kalman filtered lake water levels; superimposed on median lake water levels
+#    - Figure 5: Neural network prediced lake water levels; superimposed on median lake water levels and in-situ data
+#                Uses both Sentinel A and Sentinel B data
 
 # Constants for plotting
 FIG_WIDTH_INCHES = 6.5
@@ -24,33 +26,8 @@ TICK_LABEL_SIZE = 14
 LABEL_SIZE = 14
 TEXT_COLOUR="w"
 
-#### Read in Sentinel A and B data and isolate Lake Winnipeg data.
-def read_sentinel_data(filename):
-    sentinel_data = pd.read_csv(filename)
-    sentinel_data = sentinel_data.rename(
-        columns={
-            "Date (YYYYMMDD)" : "date",
-            "Lake_name" : "lake_name",
-            "Latitude" : "latitude",
-            "Longitude" : "longitude",
-            "Relaive_orbit" : "relative_orbit",
-            "Lake water level (m)" : "lake_water_level"
-        }
-    )
-    # Convert date to date time.
-    sentinel_data.loc[:, "date"] = pd.to_datetime(sentinel_data.loc[:, "date"], format="%Y%m%d")
-    return sentinel_data
-
-# Sentinel A data is used for our initial data exploration including Kalman filtering
-# Sentinel B data is used along with Sentinel A data for our neural network.
-sentinel_data_A = read_sentinel_data("data/Sentinel_3A_water_level_Version0.csv")
-sentinel_data_B = read_sentinel_data("data/Sentinel_3B_water_level_Version0.csv")
-
-# Isolate Lake Winnipeg data from Sentinel A data
-lake_winnipeg = sentinel_data_A[
-    sentinel_data_A["lake_name"] == "Winnipeg"
-]
-
+# Read Sentinel A Lake Winnipeg data
+lake_winnipeg = pd.read_csv("./processed/sentinel_a_lake_winnipeg.csv")
 
 ####
 #### FIGURE 1: Sentinel A ground tracks over Lake Winnipeg
@@ -379,46 +356,90 @@ fig.savefig(
     transparent=True
 )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Concatenate Sentinel A and B data, and isolate Lake Winnipeg data
-sentinel_data = pd.concat([sentinel_data_A, sentinel_data_B])
-lake_winnipeg = sentinel_data[
-    sentinel_data["lake_name"] == "Winnipeg"
-]
-
-#### Read in-situ data and join it to the Sentinel data
-lake_winnipeg_in_situ = pd.read_csv("./data/WinnipegLake_at_GeorgeIsland.csv")
-lake_winnipeg_in_situ = lake_winnipeg_in_situ.rename(
-    columns={
-        "Date" : "date",
-        "Value (m)" : "in_situ_lake_water_level"
-    }
+####
+#### Figure 5: Neural network lake water levels
+####
+# Read in the data used to make the neural network figure
+lake_winnipeg_nn = pd.read_csv("./processed/sentinel_a_b_lake_winnipeg_neural_network.csv")
+fig = plt.figure(
+    figsize=(6, 6)
 )
-# Convert date to date time and select only date and in_situ_lake_water_level columns
-lake_winnipeg_in_situ.loc[:, "date"] = pd.to_datetime(lake_winnipeg_in_situ.loc[:, "date"], format="%Y-%m-%d")
-lake_winnipeg_in_situ = lake_winnipeg_in_situ[["date", "in_situ_lake_water_level"]]
+ax = fig.add_subplot(111)
+# Artificially split the time series into a train/test part
+# Plot in-situ
+ax.plot(
+    pd.to_datetime(lake_winnipeg_nn["date"], format="%Y-%m-%d"),
+    lake_winnipeg_nn["in_situ_lake_water_level"],
+    color="#16E0BD",
+    linestyle="-.",
+    linewidth=1.0,
+    label="In-situ lake water levels",
+    alpha=0.9
+)
 
-# Join the data on date
-lake_winnipeg = lake_winnipeg.merge(lake_winnipeg_in_situ, on='date', how='left')
+# Plot median of lake water levels
+ax.plot(
+    pd.to_datetime(lake_winnipeg_nn["date"], format="%Y-%m-%d"),
+    lake_winnipeg_nn["lake_water_level"],
+    linestyle="-",
+    linewidth=1.0,
+    color="#F55536",
+    alpha=0.5,
+    label="Sentinel A/B lake water levels (median)"
+)
 
 
+ax.plot(
+    pd.to_datetime(lake_winnipeg_nn["date"], format="%Y-%m-%d"),
+    lake_winnipeg_nn["lake_water_levels_nn"], 
+    color="#586A6A", # Deep space sparkle
+    linestyle="--",
+    linewidth=1.0,
+    alpha=0.9,
+    label="Neural Network"
+)
+
+locator = matplotlib.dates.MonthLocator((1, 7))
+fmt = matplotlib.dates.DateFormatter('%b-%Y')
+ax.xaxis.set_major_locator(locator)
+ax.xaxis.set_major_formatter(fmt)
+for x in ax.get_xticklabels():
+    x.set_rotation(45)
+    x.set_fontsize(TICK_LABEL_SIZE)
+    x.set_color("w")
+    
+for y in ax.get_yticklabels():
+    y.set_fontsize(TICK_LABEL_SIZE)
+    y.set_color("w")
+ax.legend()
+ax.set_xlabel(
+    "Date",
+    labelpad=20,
+    fontsize=LABEL_SIZE,
+    color=TEXT_COLOUR
+)
+ax.set_ylabel(
+    "Lake Water Level (m)",
+    labelpad=20,
+    fontsize=LABEL_SIZE,
+    color=TEXT_COLOUR
+)
+ax.spines["top"].set_color(TEXT_COLOUR)
+ax.spines["bottom"].set_color(TEXT_COLOUR)
+ax.spines["left"].set_color(TEXT_COLOUR)
+ax.spines["right"].set_color(TEXT_COLOUR)
+ax.tick_params(axis='x', colors=TEXT_COLOUR)
+ax.tick_params(axis='y', colors=TEXT_COLOUR)
+plt.title(
+    "Lake Winnipeg water levels: in-situ, median,\n and neural network",
+    pad=20,
+    fontsize=TITLE_SIZE,
+    color=TEXT_COLOUR
+)
+plt.tight_layout()
+fig.savefig(
+    './out/neural_network.png',
+    dpi=400, 
+    bbox_inches='tight', 
+    transparent=True
+)
