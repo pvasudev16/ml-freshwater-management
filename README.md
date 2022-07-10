@@ -1,36 +1,34 @@
 # Machine Learning for Freshwater Lakes Management
-By [Pranai Vasudev](https://github.com/pvasudev16), [Chris Granstrom](https://github.com/CGranstrom), [Evanilton Pires](https://github.com/Evanilton)
+By [Pranai Vasudev](https://github.com/pvasudev16), [Chris Granstrom](https://github.com/CGranstrom), [Evanilton Pires](https://github.com/Evanilton).
 
-We explore Kalman filtering and neural networks as techniques to predict water level time series for Lake Winnipeg in Canada.
+We explore Kalman filtering and neural networks as techniques to predict water level time series for Lake Winnipeg in Canada. We also explore the possibility of using a hybrid neural network/Kalman filter, [KalmanNet](https://github.com/KalmanNet/KalmanNet_TSP) to produce lake water time series.
 
 ## Key results
-We implemented our own Kalman filter to predict lake water levels, based on the work by [Schwatke, C. *et. al.*, Hydrol. Earth Syst. Sci., 19, 4345–4364, 2015](https://hess.copernicus.org/preprints/12/4813/2015/hess-2015-86-manuscript-version3.pdf).
-Our results suggest that Kalman filtering is the best way to take noisy satellite altimetry data and produce smoother time series.
-! [Kalman filtering LINK BROKEN](path_to_figure)
+We implemented our own Kalman filter to predict lake water levels, based on the work described by the Database for Hydrological Time Series of Inland waters (DAHITI) in the paper [Schwatke, C. *et. al.*, Hydrol. Earth Syst. Sci., 19, 4345–4364, 2015](https://hess.copernicus.org/preprints/12/4813/2015/hess-2015-86-manuscript-version3.pdf). Our results suggest that Kalman filtering is the best way to take noisy satellite altimetry data and produce smoother time series.
+![Kalman filtering ](https://github.com/pvasudev16/ml-freshwater-management/blob/main/out/kalman.png)
 
 We also implemented a fully-connected neural network (with no memory) to predict lake water levels. This neural network accepts 920 satellite altimetry points on each day, and predicts a single lake water level. The neural network was trained on
 200 days worth of satellite altimetry data for Lake Winnipeg between Jan 2019 and Jul 2021, given [in-situ lake water levels](https://github.com/pvasudev16/ml-freshwater-management/blob/main/data/WinnipegLake_at_GeorgeIsland.csv) as the target for training. 
+![Neural network](https://github.com/pvasudev16/ml-freshwater-management/blob/main/out/neural_network.png)
 
-! [Neural network LINK BROKEN](path_to_figure)
+Finally, we attempted to use KalmanNet to produce the Kalman gain. The Kalman gain is the parameter that describes whether a 
 
 
 # Repository organization
-- [`lake_water_level_data_exploration.ipynb`](https://github.com/pvasudev16/ml-freshwater-management/blob/main/lake_water_level_data_exploration.ipynb) contains our exploratory data analysis. We show maps of the satellite tracks across Lake Winnipeg (using [cartopy](https://scitools.org.uk/cartopy/docs/latest/)),
-our data cleaning, and our results for Kalman filtering.
-- LSTM.ipynb (name to change) We construct our neural network to predict lake water levels
-- [`figure_for_presentation.py` LINK BROKEN](path_to_file) generates the figures we use in our final presentation.
-- [`data`] folder
+- [`lake_water_level_data_exploration.ipynb`](https://github.com/pvasudev16/ml-freshwater-management/blob/main/lake_water_level_data_exploration.ipynb) contains our exploratory data analysis. We show maps of the satellite tracks across Lake Winnipeg (using [cartopy](https://scitools.org.uk/cartopy/docs/latest/)), discuss our approach data cleaning, and outlier rejection. We also explore some ideas borrowed
+- ['lake_water_level_neural_network.ipynb'](https://github.com/pvasudev16/ml-freshwater-management/blob/main/lake_water_level_neural_network.ipynb) We construct our neural network to predict lake water levels
+- [`figure_for_presentation.py`](https://github.com/pvasudev16/ml-freshwater-management/blob/main/figures_for_presentation.py) generates the figures we use in our final presentation
+- [`data`](https://github.com/pvasudev16/ml-freshwater-management/tree/main/data)
     - Includes the Sentinel A and B satellite altimetry data. These data give lake water levels for different latitude/longitudes on different days for several different lakes. We focus on Lake Winnipeg
     - Includes in-situ data. The in-situ data is the measured lake water level in Lake Winnipeg, from the Government of Canada
-    - 
-- [`out/` LINK BROKEN](path_to_out_folder) holds the .png files used in the final presentation
+- [`out/`](https://github.com/pvasudev16/ml-freshwater-management/tree/main/out) holds the .png files used in the final presentation
     - outlier_rejection - Shows the strategy for data cleaning; reject all data points that are more than 2 standard deviations away from the mean
     - median - Shows the median lake water level (median of all the satellite altimetry data on a particular day) as a baseline
     - kalman - Demonstrates the results for Kalman filtering; compares with the baseline (see median)
     - neural_network - Demonstrates the results for the neural network predicted lake water levels
-- 'processed/` holds all the processed data used for generating the files
-    - 'sentinel_a_lake_winnipeg.csv' - generated by `lake_water_level_data_exploration.ipynb`, and holds all the Sentinel A data specific to Lake Winnipeg
-    - 'sentinel_a_lake_winnipeg_kalman_filtered.csv' - generated by `lake_water_level_data_exploration.ipynb`, and holds the Kalman filtered lake water levels
-    - 'sentinel_a_b_lake_winnipeg_neural_network.csv' - generated by LSTM.py (NAME TO CHANGE), and holds the neural network predicted lake water levels
-    - `imputed_sentinel_a_b_data.csv ` - generated by LSTM.py (NAME TO CHANGE). The number of satellite altimetry data points on each day is different; in order to use the data in the neural network, the data has to be imputed so that each day has the same number of points. This file holds the results of the imputation.
+- [`processed/`](https://github.com/pvasudev16/ml-freshwater-management/tree/main/processed) holds all the processed data used for generating the files
+    - 'sentinel_a_lake_winnipeg_remove_outliers.csv' - generated by `lake_water_level_data_exploration.ipynb`, holds all the Sentinel A data specific to Lake Winnipeg, and includes a column "reject" indicating whether or not the data points is to be rejected as an outlier.
+    - 'sentinel_a_lake_winnipeg_kalman_filtered.csv' - generated by `lake_water_level_kalman_filtering.ipynb`, holds the Kalman filtered lake water levels
+    - 'sentinel_a_b_lake_winnipeg_neural_network.csv' - generated by `lake_water_level_neural_network.ipynb`, holds the neural network predicted lake water levels
+    - `imputed_sentinel_a_b_data.csv ` - generated by `lake_water_level_neural_network.ipynb`. The number of satellite altimetry data points on each day is different; in order to use the data in the neural network, the data has to be imputed so that each day has the same number of points. This file holds the results of the imputation.
 
