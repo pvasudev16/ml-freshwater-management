@@ -328,7 +328,7 @@ ax.plot(
     zorder=10,
     label="Kalman Filtered",
     alpha=0.85,
-    color="k"
+    color="#6BAB90"
 )
 ax.set_xlabel(
     'Date',
