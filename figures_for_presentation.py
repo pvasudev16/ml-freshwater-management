@@ -27,7 +27,20 @@ LABEL_SIZE = 14
 TEXT_COLOUR="w"
 
 # Read Sentinel A Lake Winnipeg data
-lake_winnipeg = pd.read_csv("./processed/sentinel_a_lake_winnipeg.csv")
+sentinel_data_A = pd.read_csv("data/Sentinel_3A_water_level_Version0.csv")
+sentinel_data_A = sentinel_data_A.rename(
+    columns={
+        "Date (YYYYMMDD)" : "date",
+        "Lake_name" : "lake_name",
+        "Latitude" : "latitude",
+        "Longitude" : "longitude",
+        "Relaive_orbit" : "relative_orbit",
+        "Lake water level (m)" : "lake_water_level"
+    }
+)
+lake_winnipeg = sentinel_data_A[
+    sentinel_data_A["lake_name"] == "Winnipeg"
+]
 
 ####
 #### FIGURE 1: Sentinel A ground tracks over Lake Winnipeg
@@ -217,6 +230,14 @@ fig.savefig(
 ####
 #### Figure 3: Mean lake water levels on each day
 ####
+# Read in the processed data; reuse the lake_winnipeg name for the data frame
+lake_winnipeg = pd.read_csv("./processed/sentinel_a_lake_winnipeg_remove_outliers.csv")
+
+# Reject outliers
+lake_winnipeg = lake_winnipeg.loc[
+    lake_winnipeg["reject"] == False
+]
+
 baseline_results = lake_winnipeg[
     [
         "date",
@@ -288,7 +309,8 @@ fig.savefig(
 ##### Figure 4: Kalman filtered lake water levels; overlaid on median (figure 3) levels
 #####
 # Just read in the results; don't repeat processing here.
-kalman_filtered = pd.read_csv("./processed/lake_winnipeg_sentinel_a_kalman_filtered.csv")
+kalman_filtered = pd.read_csv("./processed/sentinel_a_lake_winnipeg_kalman_filtered.csv")
+
 # Plot just the median
 fig = plt.figure(figsize=(6, 6))
 ax = fig.add_subplot(111)
