@@ -16,7 +16,7 @@ Finally, we attempted to use KalmanNet to produce the Kalman gain. The Kalman ga
 
 # Repository organization
 - [`lake_water_level_data_exploration.ipynb`](https://github.com/pvasudev16/ml-freshwater-management/blob/main/lake_water_level_data_exploration.ipynb) contains our exploratory data analysis. We show maps of the satellite tracks across Lake Winnipeg (using [cartopy](https://scitools.org.uk/cartopy/docs/latest/)), discuss our approach data cleaning, and outlier rejection. We also explore some ideas borrowed
-- ['lake_water_level_neural_network.ipynb'](https://github.com/pvasudev16/ml-freshwater-management/blob/main/lake_water_level_neural_network.ipynb) We construct our neural network to predict lake water levels
+- [`lake_water_level_neural_network.ipynb`](https://github.com/pvasudev16/ml-freshwater-management/blob/main/lake_water_level_neural_network.ipynb) We construct our neural network to predict lake water levels
 - [`figure_for_presentation.py`](https://github.com/pvasudev16/ml-freshwater-management/blob/main/figures_for_presentation.py) generates the figures we use in our final presentation
 - [`data`](https://github.com/pvasudev16/ml-freshwater-management/tree/main/data)
     - Includes the Sentinel A and B satellite altimetry data. These data give lake water levels for different latitude/longitudes on different days for several different lakes. We focus on Lake Winnipeg
